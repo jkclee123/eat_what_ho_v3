@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:eat_what_ho_v3/data.dart';
 import 'package:eat_what_ho_v3/restaurant.dart';
 import 'package:eat_what_ho_v3/saved_screen.dart';
+import 'restriction_screen.dart';
 import 'package:eat_what_ho_v3/transition.dart';
 
 import 'package:flutter/services.dart' show rootBundle;
@@ -27,11 +28,50 @@ class SuggestionScreenState extends State<SuggestionScreen>{
           )
         ]
       ),
-      body: restaurantList.isNotEmpty ? _suggestion() : _loading(),
+      body: restaurantList.isNotEmpty ? (endSearch ? _noSuggestion() : _suggestion()) : _loading(),
     );
   }
 
+  Widget _noSuggestion(){
+    return Container(
+      width: screenSize.width,
+      height: screenSize.height,
+      color: Colors.purple,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.max,
+        children: <Widget>[
+          new Text(
+            "No More Restaurant :(",
+            style: font26white,
+          ),
+          new RaisedButton(
+            onPressed: _resetSuggestion,
+            child: Text(
+              "Restart Search",
+              style: font16black,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _resetSuggestion(){
+    resetRestrictions();
+    setState(() {
+      pos = -1;
+      restaurantList.clear();
+      history.clear();
+      savedList.clear();
+      endSearch = false;    
+    });
+  }
+
   Widget _loading(){
+    _getRestaurantsFromJson();
+
     return Container(
       width: screenSize.width,
       height: screenSize.height,
@@ -45,7 +85,8 @@ class SuggestionScreenState extends State<SuggestionScreen>{
   Widget _suggestion(){
     return GestureDetector(
       onHorizontalDragEnd: (DragEndDetails details) => _horizontalSwipe(details),
-      onDoubleTap: () => _saveRestaurant(context),
+      onDoubleTap: () => _saveRestaurant(),
+      onVerticalDragEnd: (DragEndDetails details) => _verticalSwipe(details),
       child: Container(
         width: screenSize.width,
         height: screenSize.height,
@@ -78,11 +119,9 @@ class SuggestionScreenState extends State<SuggestionScreen>{
 
   void _horizontalSwipe(DragEndDetails details){ 
     if (details.primaryVelocity == 0) return;
-    print(history.toString());
     //swipe right
     if (details.primaryVelocity.compareTo(0) == 1){
       if (history.last == pos){
-        pos++;
         _nextSuggestion();
       } else {
         setState(() {
@@ -98,7 +137,16 @@ class SuggestionScreenState extends State<SuggestionScreen>{
     }
   }
 
-  void _saveRestaurant(BuildContext context){
+  void _verticalSwipe(DragEndDetails details){
+    if (details.primaryVelocity == 0) return;
+    if (details.primaryVelocity.compareTo(0) == -1){
+      Navigator.of(context).push(
+        SlideUpRoute(widget: RestrictionScreen()),
+      );
+    }
+  }
+
+  void _saveRestaurant(){
     if (!savedList.contains(pos)){
       savedList.add(pos);
       Fluttertoast.showToast(
@@ -119,29 +167,37 @@ class SuggestionScreenState extends State<SuggestionScreen>{
   }
 
   @override
-  void initState(){
-    super.initState();
-    if (restaurantList.isEmpty) _getRestaurantsFromJson();
+  void dispose(){
+    super.dispose();
+    endSearch = false;
+    beforeDistrictMap = new Map<String, bool>.from(districtMap);
   }
 
   void _nextSuggestion(){
-    int i = pos;
+    int i = ++pos;
     for (; i < restaurantList.length - 1; i++){
-      if (searchMode == true){
+      if (searchMode == 2){
         //Local Search
-        num distance = Distance().as(LengthUnit.Meter, new LatLng(currentLocation["latitude"], currentLocation["longitude"]), restaurantList[i].latLng.latlng);
-        if (distance > 1500) continue;
+        distance = Distance().as(LengthUnit.Meter, new LatLng(currentLocation["latitude"], currentLocation["longitude"]), restaurantList[i].latLng.latlng);
+        if (distance > maxDistance) continue;
         break;
       } else{
         //District Search
+        if (!districtMap[restaurantList[i].district]) continue;
+        break;
 
       }
     }
-    print(i.toString());
-    setState(() {
-      pos = i;
-      history.add(pos);
-    });    
+    if (i >= restaurantList.length){
+      setState(() {
+        endSearch = true;        
+      });
+    } else {
+      setState(() {
+        pos = i;
+        history.add(pos);
+      }); 
+    } 
   }
 
   void _getRestaurantsFromJson() async{

@@ -3,12 +3,13 @@ import 'package:eat_what_ho_v3/restaurant.dart';
 import 'dart:async';
 
 Size screenSize = new Size(0.0, 0.0);
-bool searchMode; //Local Search: true, District Search: false
+int searchMode = 0; //District Search: 1, Local Search: 2
+bool endSearch = false;
 
-Map<String, double> currentLocation;
+Map<String, double> currentLocation = new Map<String, double>();
 StreamSubscription<Map<String, double>> locationSubscription;
 
-int pos = 0;
+int pos = -1;
 List<Restaurant> restaurantList = new List<Restaurant>();
 List<int> history = new List<int>();
 List<int> savedList = new List<int>();
@@ -19,13 +20,20 @@ TextStyle font18black = TextStyle(fontSize: 18.0, color: Colors.black);
 TextStyle font18white = TextStyle(fontSize: 18.0, color: Colors.white);
 TextStyle font14black = TextStyle(fontSize: 14.0, color: Colors.black);
 TextStyle font14white = TextStyle(fontSize: 14.0, color: Colors.white);
+TextStyle font16black = TextStyle(fontSize: 16.0, color: Colors.black);
 
-List<String> chosenDistrictList = new List<String>();
-List<String> districtList = ["Kwun_Tong", "Mei_Foo", "Mong_Kok", "Yau_Ma_Tei", "Yuen_Long", "Wan_Chai", "Hung_Hom", "Causeway_Bay", "Tai_Wo", "Prince_Edward", "Sheung_Shui", "North_Point", "Tai_Kok_Tsui", "Western_District", "Admiralty", "Fo_Tan", "Tai_Koo", "Tsim_Sha_Tsui", "Tsuen_Wan", "Aberdeen", "Cheung_Sha_Wan", "Tseung_Kwan_O", "Tuen_Mun", "Central", "Tung_Chung", "Sha_Tin", "Sheung_Wan", "Sham_Shui_Po", "Sai_Wan_Ho", "Tin_Hau", "Shau_Kei_Wan", "Ap_Lei_Chau", "Tin_Shui_Wai", "Wong_Tai_Sin", "Lok_Fu", "Lai_Chi_Kok", "Jordan", "Tai_Wai", "Wong_Chuk_Hang", "Heng_Fa_Chuen", "Lam_Tin", "Kwai_Fong", "Ngau_Tau_Kok", "Choi_Hung", "Quarry_Bay", "Tai_Hang", "Kwai_Chung", "Chai_Wan", "Kowloon_Tong", "Tai_Po", "Fanling", "Shek_Kip_Mei", "Yau_Tong", "San_Po_Kong", "Ho_Man_Tin", "Tsing_Yi", "Lantau_Island", "Kowloon_Bay", "Lok_Ma_Chau", "Pok_Fu_Lam", "Lo_Wu", "Stanley", "Mid-Levels", "Lamma_Island", "Tsz_Wan_Shan", "To_Kwa_Wan", "Sai_Kung", "Cheung_Chau", "Shek_O", "Deep_Water_Bay", "Happy_Valley", "Lau_Fau_shan", "Kowloon_City", "Sham_Tseng", "Po_Toi_Island", "Chek_Lap_Kok"];
+num distance = 0;
+num maxDistance = 1500;
+int maxDistanceFromMTR = 99;
 
-void resetSuggestion(){
-  pos = 0;
-  restaurantList.clear();
-  history.clear();
-  savedList.clear();
+Map<String, bool> beforeDistrictMap = new Map<String, bool>();
+Map<String, bool> districtMap = {"Kwun Tong": false, "Mei Foo": false, "Mong Kok": false, "Yau Ma Tei": false, "Yuen Long": false, "Wan Chai": false, "Hung Hom": false, "Causeway Bay": false, "Tai Wo": false, "Prince Edward": false, "Sheung Shui": false, "North Point": false, "Tai Kok Tsui": false, "Western District": false, "Admiralty": false, "Fo Tan": false, "Tai Koo": false, "Tsim Sha Tsui": false, "Tsuen Wan": false, "Aberdeen": false, "Cheung Sha Wan": false, "Tseung Kwan O": false, "Tuen Mun": false, "Central": false, "Tung Chung": false, "Sha Tin": false, "Sheung Wan": false, "Sham Shui Po": false, "Sai Wan Ho": false, "Tin Hau": false, "Shau Kei Wan": false, "Ap Lei Chau": false, "Tin Shui Wai": false, "Wong Tai Sin": false, "Lok Fu": false, "Lai Chi Kok": false, "Jordan": false, "Tai Wai": false, "Wong Chuk Hang": false, "Heng Fa Chuen": false, "Lam Tin": false, "Kwai Fong": false, "Ngau Tau Kok": false, "Choi Hung": false, "Quarry Bay": false, "Tai Hang": false, "Kwai Chung": false, "Chai Wan": false, "Kowloon Tong": false, "Tai Po": false, "Fanling": false, "Shek Kip Mei": false, "Yau Tong": false, "San Po Kong": false, "Ho Man Tin": false, "Tsing Yi": false, "Lantau Island": false, "Kowloon Bay": false, "Lok Ma Chau": false, "Pok Fu Lam": false, "Lo Wu": false, "Stanley": false, "Mid-Levels": false, "Lamma Island": false, "Tsz Wan Shan": false, "To Kwa Wan": false, "Sai Kung": false, "Cheung Chau": false, "Shek O": false, "Deep Water Bay": false, "Happy Valley": false, "Lau Fau shan": false, "Kowloon City": false, "Sham Tseng": false, "Po Toi Island": false, "Chek Lap Kok": false};
+
+List<String> districtList = ["Kwun Tong", "Mei Foo", "Mong Kok", "Yau Ma Tei", "Yuen Long", "Wan Chai", "Hung Hom", "Causeway Bay", "Tai Wo", "Prince Edward", "Sheung Shui", "North Point", "Tai Kok Tsui", "Western District", "Admiralty", "Fo Tan", "Tai Koo", "Tsim Sha Tsui", "Tsuen Wan", "Aberdeen", "Cheung Sha Wan", "Tseung Kwan O", "Tuen Mun", "Central", "Tung Chung", "Sha Tin", "Sheung Wan", "Sham Shui Po", "Sai Wan Ho", "Tin Hau", "Shau Kei Wan", "Ap Lei Chau", "Tin Shui Wai", "Wong Tai Sin", "Lok Fu", "Lai Chi Kok", "Jordan", "Tai Wai", "Wong Chuk Hang", "Heng Fa Chuen", "Lam Tin", "Kwai Fong", "Ngau Tau Kok", "Choi Hung", "Quarry Bay", "Tai Hang", "Kwai Chung", "Chai Wan", "Kowloon Tong", "Tai Po", "Fanling", "Shek Kip Mei", "Yau Tong", "San Po Kong", "Ho Man Tin", "Tsing Yi", "Lantau Island", "Kowloon Bay", "Lok Ma Chau", "Pok Fu Lam", "Lo Wu", "Stanley", "Mid-Levels", "Lamma Island", "Tsz Wan Shan", "To Kwa Wan", "Sai Kung", "Cheung Chau", "Shek O", "Deep Water Bay", "Happy Valley", "Lau Fau shan", "Kowloon City", "Sham Tseng", "Po Toi Island", "Chek Lap Kok"];
+List<String> searchList = new List<String>.from(districtList);
+
+void resetRestrictions(){
+  maxDistance = 1500;
+  maxDistanceFromMTR = 99;
 }
+

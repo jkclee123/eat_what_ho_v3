@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:eat_what_ho_v3/data.dart';
-// import 'package:eat_what_ho_v3/restaurant.dart';
-// import 'package:eat_what_ho_v3/transition.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SavedScreen extends StatefulWidget{
   @override
@@ -12,7 +11,15 @@ class SavedScreenState extends State<SavedScreen>{
   @override
   Widget build(BuildContext context){
     return Scaffold(
-      appBar: AppBar(title: Text("Saved")),
+      appBar: AppBar(
+        title: Text("Saved"),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.open_in_browser),
+            onPressed: _webPage,
+          )
+        ]
+      ),
       body: GestureDetector(
         onHorizontalDragEnd: (DragEndDetails details) => _horizontalSwipe(details),
         child: ListView.builder(
@@ -38,10 +45,6 @@ class SavedScreenState extends State<SavedScreen>{
           restaurantList[index].name,
           style: font18black,
         ),
-        // trailing: GestureDetector(
-        //   onTap: () => _removeSaved(index),
-        //   child: Icon(Icons.cancel),
-        // ),
       ),
     );
   }
@@ -61,4 +64,11 @@ class SavedScreenState extends State<SavedScreen>{
       Navigator.of(context).pop();
     }
   }
+
+  _webPage() async{
+    for (var i = 0; i < savedList.length; i++){
+      if (await canLaunch(restaurantList[savedList[i]].url)) await launch(restaurantList[savedList[i]].url);
+    }
+  }
+
 }
