@@ -14,6 +14,12 @@ class DistrictScreenState extends State<DistrictScreen>{
     return Scaffold(
       appBar: AppBar(
         title: Text("Choose Districts"),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.clear),
+            onPressed: _clearDistricts,
+          )
+        ]
       ),
       body: Column(
         children: <Widget>[
@@ -24,6 +30,7 @@ class DistrictScreenState extends State<DistrictScreen>{
               hintText: 'Search district',
               contentPadding: const EdgeInsets.all(16.0)
             ),
+            controller: textController,
             onChanged: (String input){
               setState(() { 
                 if (input == ""){ 
@@ -40,15 +47,18 @@ class DistrictScreenState extends State<DistrictScreen>{
             },
           ),
           new Flexible(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16.0),
-              itemBuilder: (context, i){
-                int index = i ~/ 2; 
-                if (searchList.length > index) {
-                  if (i.isOdd) return Divider();
-                  return _buildRow(searchList[index]);
+            child: GestureDetector(
+              onHorizontalDragEnd: (DragEndDetails details) => _horizontalSwipe(details),
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16.0),
+                itemBuilder: (context, i){
+                  int index = i ~/ 2; 
+                  if (searchList.length > index) {
+                    if (i.isOdd) return Divider();
+                    return _buildRow(searchList[index]);
+                  }
                 }
-              }
+              ),
             ),
           ),
         ],
@@ -56,18 +66,20 @@ class DistrictScreenState extends State<DistrictScreen>{
       floatingActionButton: new FloatingActionButton(
         child: new Icon(Icons.search),
         onPressed: () {
-          searchMode = 1;
-          beforeDistrictMap.forEach((key, value){
-            if (districtMap[key] != value){
-              resetRestrictions();
-              pos = -1;
-              restaurantList.clear();
-              history.clear();
-              savedList.clear();
-              endSearch = false;
-            }
-          });
           if (districtMap.containsValue(true)) {
+            beforeDistrictMap.forEach((key, value){
+              if (districtMap[key] != value){
+                resetRestrictions();
+                pos = -1;
+                restaurantList.clear();
+                history.clear();
+                savedList.clear();
+                endSearch = false;
+              }
+            });
+            searchMode = 1;
+            textController.text = "";
+            searchList = new List<String>.from(districtList);
             Navigator.push(context, MaterialPageRoute(builder: (context) => SuggestionScreen()));
           } else {
             Fluttertoast.showToast(
@@ -99,9 +111,32 @@ class DistrictScreenState extends State<DistrictScreen>{
     );
   }
 
-  // @override
-  // void initState() {
-  //   super.initState(); 
-  //   beforeDistrictMap = new Map<String, bool>.from(districtMap);
-  // }
+  @override
+  void initState() {
+    super.initState(); 
+    searchList = new List<String>.from(districtList);
+  }
+
+  @override
+  void dispose(){
+    super.dispose();
+    textController.text = "";
+    searchList = new List<String>.from(districtList);
+  }
+
+  void _clearDistricts(){
+    setState(() {
+      districtMap.updateAll((String key, bool value){
+        return false;
+      }); 
+    });
+  }
+
+  void _horizontalSwipe(DragEndDetails details){ 
+    if (details.primaryVelocity == 0) return;
+    //swipe right
+    if (details.primaryVelocity.compareTo(0) == 1){
+      Navigator.of(context).pop();
+    }
+  }
 }

@@ -15,7 +15,7 @@ class SavedScreenState extends State<SavedScreen>{
         title: Text("Saved"),
         actions: <Widget>[
           IconButton(
-            icon: Icon(Icons.open_in_browser),
+            icon: Icon(Icons.signal_wifi_4_bar),
             onPressed: _webPage,
           )
         ]
@@ -66,8 +66,8 @@ class SavedScreenState extends State<SavedScreen>{
   }
 
   _webPage() async{
-    for (var i = 0; i < savedList.length; i++){
-      if (await canLaunch(restaurantList[savedList[i]].url)) await launch(restaurantList[savedList[i]].url);
+    for (var saved in savedList){
+      if (await canLaunch(restaurantList[saved].url)) await launch(restaurantList[saved].url); 
     }
   }
 

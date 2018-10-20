@@ -24,6 +24,7 @@ class ModeScreenState extends State<ModeScreen>{
         title: Text("Eat What Ho"),
       ),
       body: Container(
+        padding: const EdgeInsets.all(16.0),
         width: screenSize.width,
         height: screenSize.height,
         color: Colors.purple,

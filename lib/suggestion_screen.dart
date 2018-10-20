@@ -88,6 +88,7 @@ class SuggestionScreenState extends State<SuggestionScreen>{
       onDoubleTap: () => _saveRestaurant(),
       onVerticalDragEnd: (DragEndDetails details) => _verticalSwipe(details),
       child: Container(
+        padding: const EdgeInsets.all(16.0),
         width: screenSize.width,
         height: screenSize.height,
         color: Colors.purple,
@@ -111,6 +112,15 @@ class SuggestionScreenState extends State<SuggestionScreen>{
                 ),
               ),
             ),
+            new Text(
+              restaurantList[pos].rating != null ? "rating: " + restaurantList[pos].rating : "rating: Not Available",
+              style: font20white,
+            ),
+            new Text(
+              searchMode == 1 ? 
+                restaurantList[pos].mtr : distance.toString() + " meter from current location.",
+              style: font14white,            
+            )
           ]
         )
       )
@@ -122,7 +132,7 @@ class SuggestionScreenState extends State<SuggestionScreen>{
     //swipe right
     if (details.primaryVelocity.compareTo(0) == 1){
       if (history.last == pos){
-        _nextSuggestion();
+        nextSuggestionData(this);
       } else {
         setState(() {
           pos = history[history.indexOf(pos) + 1];
@@ -135,6 +145,12 @@ class SuggestionScreenState extends State<SuggestionScreen>{
         pos = history[history.indexOf(pos) - 1];
       });
     }
+    if (searchMode == 2){
+        distance = Distance().as(LengthUnit.Meter, new LatLng(currentLocation["latitude"], currentLocation["longitude"]), restaurantList[pos].latLng.latlng);
+    }
+
+    print(history.toString());
+    print(pos.toString());
   }
 
   void _verticalSwipe(DragEndDetails details){
@@ -169,35 +185,7 @@ class SuggestionScreenState extends State<SuggestionScreen>{
   @override
   void dispose(){
     super.dispose();
-    endSearch = false;
     beforeDistrictMap = new Map<String, bool>.from(districtMap);
-  }
-
-  void _nextSuggestion(){
-    int i = ++pos;
-    for (; i < restaurantList.length - 1; i++){
-      if (searchMode == 2){
-        //Local Search
-        distance = Distance().as(LengthUnit.Meter, new LatLng(currentLocation["latitude"], currentLocation["longitude"]), restaurantList[i].latLng.latlng);
-        if (distance > maxDistance) continue;
-        break;
-      } else{
-        //District Search
-        if (!districtMap[restaurantList[i].district]) continue;
-        break;
-
-      }
-    }
-    if (i >= restaurantList.length){
-      setState(() {
-        endSearch = true;        
-      });
-    } else {
-      setState(() {
-        pos = i;
-        history.add(pos);
-      }); 
-    } 
   }
 
   void _getRestaurantsFromJson() async{
@@ -212,6 +200,6 @@ class SuggestionScreenState extends State<SuggestionScreen>{
     setState(() {
       restaurantList = list;
     });
-    _nextSuggestion();
+    nextSuggestionData(this);
   }  
 }
